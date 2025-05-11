@@ -326,13 +326,20 @@ def note_trigram_perplexity(midi_file):
 
 
 
-# 6. Our model currently doesn’t have any knowledge of beats. Write a function that extracts beat lengths and outputs a list of [(beat position; beat length)] values.
+# 6. Our model currently doesn’t have any knowledge of beats. Write a function that extracts beat lengths and outputs 
+# a list of [(beat position; beat length)] values.
 # 
-#     Recall that each note will be encoded as `Position, Pitch, Velocity, Duration` using REMI. Please keep the `Position` value for beat position, and convert `Duration` to beat length using provided lookup table `duration2length` (see below).
+#     Recall that each note will be encoded as `Position, Pitch, Velocity, Duration` using REMI. 
+# Please keep the `Position` value for beat position, and convert `Duration` to beat length using provided lookup table 
+# `duration2length` (see below).
 # 
-#     For example, for a note represented by four tokens `('Position_24', 'Pitch_72', 'Velocity_127', 'Duration_0.4.8')`, the extracted (beat position; beat length) value is `(24, 4)`.
+#     For example, for a note represented by four tokens `('Position_24', 'Pitch_72', 'Velocity_127', 'Duration_0.4.8')`, 
+# the extracted (beat position; beat length) value is `(24, 4)`.
 # 
-#     As a result, we will obtain a list like [(0,8),(8,16),(24,4),(28,4),(0,4)...], where the next beat position is the previous beat position + the beat length. As we divide each bar into 32 positions by default, when reaching the end of a bar (i.e. 28 + 4 = 32 in the case of (28, 4)), the beat position reset to 0.
+#     As a result, we will obtain a list like [(0,8),(8,16),(24,4),(28,4),(0,4)...], 
+# where the next beat position is the previous beat position + the beat length. 
+# As we divide each bar into 32 positions by default, when reaching the end of a bar (i.e. 28 + 4 = 32 in the case of (28, 4)), 
+# the beat position reset to 0.
 
 # In[ ]:
 
@@ -356,7 +363,16 @@ duration2length = {
 
 def beat_extraction(midi_file):
     # Q6: Your code goes here
-    pass
+    beat_list = []
+    midi = Score(midi_file)
+    tokens = tokenizer(midi)[0].tokens
+    for token in tokens:
+        if "Position" in token:
+            position = token.split("_")[1]
+        if "Duration" in token:
+            duration = token.split("_")[1]
+            beat_list.append((int(position), duration2length[duration]))
+    return beat_list
 
 
 # 7. Implement a Markov chain that computes p(beat_length | previous_beat_length) based on the above function.
