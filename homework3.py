@@ -44,8 +44,8 @@ random.seed(42)
 # In[ ]:
 
 
-from google.colab import drive
-drive.mount('/content/drive')
+# from google.colab import drive
+# drive.mount('/content/drive')
 
 
 # ### Load music dataset
@@ -59,7 +59,7 @@ drive.mount('/content/drive')
 
 
 midi_files = glob('PDMX_subset/*.mid')
-len(midi_files)
+print(len(midi_files))
 
 
 # ### Train a tokenizer with the REMI method in MidiTok
@@ -81,7 +81,7 @@ tokenizer.train(vocab_size=1000, files_paths=midi_files)
 # e.g.:
 midi = Score(midi_files[0])
 tokens = tokenizer(midi)[0].tokens
-tokens[:10]
+print(tokens[:10])
 
 
 # 1. Write a function to extract note pitch events from a midi file; and another extract all note pitch events from the dataset and output a dictionary that maps note pitch events to the number of times they occur in the files. (e.g. {60: 120, 61: 58, …}).
@@ -101,15 +101,30 @@ tokens[:10]
 
 def note_extraction(midi_file):
     # Q1a: Your code goes here
-    pass
+    pitc_list = []
+    midi = Score(midi_file)
+    tokens = tokenizer(midi)[0].tokens
+    for feature in tokens:
+        if "Pitch" in feature:
+            pitch = feature.split("_")[1]
+            pitc_list.append(pitch)
+    return pitc_list
 
+print(note_extraction(midi_files[0]))
 
 # In[ ]:
 
 
 def note_frequency(midi_files):
     # Q1b: Your code goes here
-    pass
+    pitch_dict = defaultdict(int)
+    for midi_file in midi_files:
+        pitch_list = note_extraction(midi_file)
+        for pitch in pitch_list:
+            pitch_dict[pitch] += 1
+    return pitch_dict
+
+print(note_frequency(midi_files))
 
 
 # 2. Write a function to normalize the above dictionary to produce probability scores (e.g. {60: 0.13, 61: 0.065, …})
