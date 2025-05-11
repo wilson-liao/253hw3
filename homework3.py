@@ -141,13 +141,15 @@ def note_unigram_probability(midi_files):
     note_counts = note_frequency(midi_files)
     unigramProbabilities = {}
 
-    # Q2: Your code goes here
-    # ...
+    total_count = sum(note_counts.values())
+    for pitch, count in note_counts.items():
+        unigramProbabilities[pitch] = count / total_count
 
     return unigramProbabilities
 
 
-# 3. Generate a table of pairwise probabilities containing p(next_note | previous_note) values for the dataset; write a function that randomly generates the next note based on the previous note based on this distribution.
+# 3. Generate a table of pairwise probabilities containing p(next_note | previous_note) values for the dataset; 
+# write a function that randomly generates the next note based on the previous note based on this distribution.
 # 
 # `note_bigram_probability()`
 # - **Input**: all midi files `midi_files`
@@ -156,7 +158,8 @@ def note_unigram_probability(midi_files):
 # 
 #   - `bigramTransitions`: key: previous_note, value: a list of next_note, e.g. {60:[62, 64, ..], 62:[60, 64, ..], ...} (i.e., this is a list of every other note that occured after note 60, every note that occured after note 62, etc.)
 # 
-#   - `bigramTransitionProbabilities`: key:previous_note, value: a list of probabilities for next_note in the same order of `bigramTransitions`, e.g. {60:[0.3, 0.4, ..], 62:[0.2, 0.1, ..], ...} (i.e., you are converting the values above to probabilities)
+#   - `bigramTransitionProbabilities`: key:previous_note, value: a list of probabilities for next_note in the same order of 
+# `bigramTransitions`, e.g. {60:[0.3, 0.4, ..], 62:[0.2, 0.1, ..], ...} (i.e., you are converting the values above to probabilities)
 # 
 # `sample_next_note()`
 # - **Input**: a note
@@ -170,8 +173,29 @@ def note_bigram_probability(midi_files):
     bigramTransitions = defaultdict(list)
     bigramTransitionProbabilities = defaultdict(list)
 
-    # Q3a: Your code goes here
-    # ...
+    i = 0
+    for midi_file in midi_files:
+        pitch_list = note_extraction(midi_file)
+        for i in range(len(pitch_list) - 1):
+            prev_note = pitch_list[i]
+            next_note = pitch_list[i+1]
+            if prev_note not in bigramTransitions:
+                bigramTransitions[prev_note] = []
+                bigramTransitionProbabilities[prev_note] = []
+            
+            if next_note not in bigramTransitions[prev_note]:
+                bigramTransitions[prev_note].append(next_note)
+                bigramTransitionProbabilities[prev_note].append(1)
+            else:
+                next_note_ind = bigramTransitions[prev_note].index(next_note)
+                bigramTransitionProbabilities[prev_note][next_note_ind] += 1
+    
+    for prev_note in bigramTransitionProbabilities:
+        total_count = sum(bigramTransitionProbabilities[prev_note])
+        for i in range(len(bigramTransitionProbabilities[prev_note])):
+            bigramTransitionProbabilities[prev_note][i] = bigramTransitionProbabilities[prev_note][i] / total_count
+
+
 
     return bigramTransitions, bigramTransitionProbabilities
 
@@ -181,7 +205,9 @@ def note_bigram_probability(midi_files):
 
 def sample_next_note(note):
     # Q3b: Your code goes here
-    pass
+    bigramTransitions, bigramTransitionProbabilities = note_bigram_probability(midi_files)
+    probs = bigramTransitionProbabilities[note]
+    return np.random.choice(list(bigramTransitions[note]), p=probs)
 
 
 # 4. Write a function to calculate the perplexity of your model on a midi file.
@@ -206,9 +232,18 @@ def note_bigram_perplexity(midi_file):
 
     # Q4: Your code goes here
     # Can use regular numpy.log (i.e., natural logarithm)
+    pitch_list = note_extraction(midi_file)
+    perplexity = np.log(unigramProbabilities[pitch_list[0]])
+    for i in range(len(pitch_list) - 1):
+        prev_note = pitch_list[i]
+        next_note = pitch_list[i+1]
+        next_note_ind = bigramTransitions[prev_note].index(next_note)
+        perplexity += np.log(bigramTransitionProbabilities[prev_note][next_note_ind])
+    return np.exp(-perplexity / len(pitch_list))
 
 
-# 5. Implement a second-order Markov chain, i.e., one which estimates p(next_note | next_previous_note, previous_note); write a function to compute the perplexity of this new model on a midi file.
+# 5. Implement a second-order Markov chain, i.e., one which estimates p(next_note | next_previous_note, previous_note); 
+# write a function to compute the perplexity of this new model on a midi file.
 # 
 #     The perplexity of this model is defined as
 # 
@@ -240,6 +275,30 @@ def note_trigram_probability(midi_files):
 
     # Q5a: Your code goes here
     # ...
+    for midi_file in midi_files:
+        pitch_list = note_extraction(midi_file)
+        for i in range(len(pitch_list) - 2):
+            prev_note = pitch_list[i]
+            next_previous_note = pitch_list[i+1]
+            next_note = pitch_list[i+2]
+            if (prev_note, next_previous_note) not in trigramTransitions:
+                trigramTransitions[(prev_note, next_previous_note)] = []
+                trigramTransitionProbabilities[(prev_note, next_previous_note)] = []
+            
+            if next_note not in trigramTransitions[(prev_note, next_previous_note)]:
+                trigramTransitions[(prev_note, next_previous_note)].append(next_note)
+                trigramTransitionProbabilities[(prev_note, next_previous_note)].append(1)
+            else:
+                next_note_ind = trigramTransitions[(prev_note, next_previous_note)].index(next_note)
+                trigramTransitionProbabilities[(prev_note, next_previous_note)][next_note_ind] += 1
+    
+    for prev_note in trigramTransitionProbabilities:
+        total_count = sum(trigramTransitionProbabilities[prev_note])
+        for i in range(len(trigramTransitionProbabilities[prev_note])):
+            trigramTransitionProbabilities[prev_note][i] = trigramTransitionProbabilities[prev_note][i] / total_count
+
+
+            
 
     return trigramTransitions, trigramTransitionProbabilities
 
@@ -252,7 +311,19 @@ def note_trigram_perplexity(midi_file):
     bigramTransitions, bigramTransitionProbabilities = note_bigram_probability(midi_files)
     trigramTransitions, trigramTransitionProbabilities = note_trigram_probability(midi_files)
 
-    # Q5b: Your code goes here
+    pitch_list = note_extraction(midi_file)
+    perplexity = np.log(unigramProbabilities[pitch_list[0]])
+    index = bigramTransitions[pitch_list[0]].index(pitch_list[1])
+    perplexity += np.log(bigramTransitionProbabilities[pitch_list[0]][index])
+    for i in range(len(pitch_list) - 2):
+        prev_note = pitch_list[i]
+        next_previous_note = pitch_list[i+1]
+        next_note = pitch_list[i+2]
+        index = trigramTransitions[(prev_note, next_previous_note)].index(next_note)
+        perplexity += np.log(trigramTransitionProbabilities[(prev_note, next_previous_note)][index])
+    return np.exp(-perplexity / len(pitch_list))
+
+
 
 
 # 6. Our model currently doesn’t have any knowledge of beats. Write a function that extracts beat lengths and outputs a list of [(beat position; beat length)] values.
