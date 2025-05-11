@@ -107,7 +107,7 @@ def note_extraction(midi_file):
     for feature in tokens:
         if "Pitch" in feature:
             pitch = feature.split("_")[1]
-            pitc_list.append(pitch)
+            pitc_list.append(int(pitch))
     return pitc_list
 
 print(note_extraction(midi_files[0]))
@@ -121,7 +121,7 @@ def note_frequency(midi_files):
     for midi_file in midi_files:
         pitch_list = note_extraction(midi_file)
         for pitch in pitch_list:
-            pitch_dict[pitch] += 1
+            pitch_dict[int(pitch)] += 1
     return pitch_dict
 
 print(note_frequency(midi_files))
